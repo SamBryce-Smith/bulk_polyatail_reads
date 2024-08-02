@@ -1,0 +1,5 @@
+__default__:
+    h_vmem: 10G
+    tmem: 10G
+    h_rt:   8:00:00
+    submission_string: " "

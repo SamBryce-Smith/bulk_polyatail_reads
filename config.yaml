@@ -1,0 +1,81 @@
+# Path to sample table with mandatory columns:
+# sample_name - unique ID for sample
+# bam - path to BAM file (assumes presence of index file suffixed with .bai in same location)
+# Plus any additional optional categorical columns to define more precise pooling options &/ strandedness
+sample_table: "example_sample_table.csv"
+
+# list defining sample table column(s) to specify pooling prior to defining PAS clusters
+# Must be a list, each element is considered a unique 'pooling method' (i.e. can define multiple distinct approaches for pooling) 
+# Each element can be a string (for single column) or a list of strings (for grouping by multiple columns)
+# All defined column names must be present in the sample table
+# 'all' - reserved string to pool all provided samples together
+pooling_methods: ["all", "condition", ["batch", "condition"]]
+
+output_dir: "bulk_polya_reads"
+
+# appended to sample name (but preceding output file suffixes)
+output_prefix: ".polya_tail_reads"
+
+
+# Whether to define strandedness per sample via the sample table or use global setting (defined in strandedness flag below)
+# If True, column 'strandedness' must be present in sample table and populated with one of 'rf', 'fr' or 'unstranded'
+# default: False
+strandedness_from_sample_table: False
+
+# Set global strandedness of library prep, must be one of 'rf', 'fr', 'unstranded'
+# Note: if unstranded, reads are searched for As on rightmost or Ts on leftmost softclips, and reads with soft clips on both ends are discarded
+# ignored in strandedness_from_sample_table set to True
+strandedness: "rf"
+
+# True/False (whether to not output BAMs (set to True) with soft clipped reads)
+no_output_bam: True
+
+# Soft-clipped read extraction
+
+# Minumum length of soft-clipped region to retain for further analysis
+# default = 0
+min_softclip_length: 1
+
+# minimum fraction A content of soft-clipped sequence to retain for further analysis 
+# Value between 0-1, default = 0
+# Note: Low threshold e.g. 0.1 can ~ 1/2 the output file size
+min_fracA: 0
+
+
+# path to BED file containing single-nucleotide length polyA site coordinates wish to quantify
+pas_bed: data/papa_combined_cryptic_pas.bed
+
+# distance to extend either side of polyA sites from pas_bed (note that total length of searched interval would be 2*pas_window_size + 1)
+pas_window_size: 50
+
+# Whether to count pas per sample and merge individual results into final table (True), or run script once using all samples
+# If have hundreds/thousands of samples, may be preferable for memory requirements to run per sample
+# Default = False
+count_per_sample: False
+
+
+# polyA site clustering
+
+# Default method for filtering reads/positions prior to defining polyA site clusters (consult scripts/polya_filter.py for function descriptions) 
+# currently, one of vlasenok,two_class_simple,vlasenok_two_class
+pas_filter_method: "two_class_simple"
+
+# Length of interval to extend either side of provided PAS coordinates to cluster polyA junction reads 
+# (note that polyA site coordinates will be 1nt long, so total max length of cluster = 2*window + 1)
+# default: 12
+pas_cluster_window: 12
+
+# filename prefix for polyA site clusters file defined from all samples
+pas_clusters_filename_prefix: "all_samples.polya_clusters"
+
+# Minimum overhang length to define reads as 'long' overhangs (default: 6)
+long_overhang_min_length: 6
+# minimum A/tail nucleotide content for 'long' overhang reads to be considered valid (default: 0.8)
+long_overhang_fraction_a: 0.8
+# Range of overhang lengths to define 'short' overhangs. 3-5 = 3,4,5 (i.e. includes both boundaries of interval). Only applies to '*two_class' filter methods. (default: 3-5)
+short_overhang_length_range: "3-5"
+# Range of A/tail nucleotide content for 'short' overhang reads to be considered valid. Only applies to '*two_class' filter methods. (default: 1.0)
+short_overhang_fraction_a: 1.0
+
+# Minimum overhang length shannon entropy threshold for valid positions. Only applies to 'vlasenok*' filter methods (default: 2.0)
+entropy_cutoff: 2.0
