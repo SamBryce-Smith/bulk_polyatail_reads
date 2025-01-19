@@ -60,6 +60,10 @@ count_per_sample: False
 # currently, one of vlasenok,two_class_simple,vlasenok_two_class
 pas_filter_method: "two_class_simple"
 
+# Whether to also cluster valid PATRs per-sample prior to specified pooling method
+# Default = False
+cluster_per_sample: True
+
 # Length of interval to extend either side of provided PAS coordinates to cluster polyA junction reads 
 # (note that polyA site coordinates will be 1nt long, so total max length of cluster = 2*window + 1)
 # default: 12
