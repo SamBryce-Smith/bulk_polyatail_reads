@@ -62,12 +62,12 @@ wildcard_constraints:
 
 #
 
-
 rule all:
     input: 
         expand(os.path.join(out_dir, "{sample}" + output_prefix + ".global_softclip_tail_counts.tsv"), sample=SAMPLES),
         os.path.join(out_dir, "all_samples.pas.count_matrix.tsv"),
-        expand(os.path.join(out_dir, "pas_clusters", "{pool_id}", config["pas_filter_method"], config["pas_clusters_filename_prefix"] + ".bed"), pool_id=pool2sample.keys())
+        expand(os.path.join(out_dir, "pas_clusters", "{pool_id}", config["pas_filter_method"], config["pas_clusters_filename_prefix"] + ".bed"), pool_id=pool2sample.keys()),
+        expand(os.path.join(out_dir, "pas_clusters", "per_sample", config["pas_filter_method"], ".".join(["{sample}", config["pas_clusters_filename_prefix"], "bed"])), sample=SAMPLES) if config["cluster_per_sample"] else []
 
 
 rule extract_polya_reads:
@@ -240,6 +240,52 @@ rule cluster_pas:
         """
         python scripts/cluster_pas.py \
         -i {input.parquets} \
+        -f {params.filter_method} \
+        -w {params.cluster_window} \
+        -s {params.parquet_suffix} \
+        --long-overhang-min-length {params.long_overhang_min_length} \
+        --short-overhang-length-range {params.short_overhang_length_range} \
+        --long-overhang-fraction-a {params.long_overhang_fraction_a} \
+        --short-overhang-fraction-a {params.short_overhang_fraction_a} \
+        --entropy-cutoff {params.entropy_cutoff} \
+        -o {params.output_prefix} \
+        1> {log.stdout} \
+        2> {log.stderr}
+        """
+
+
+rule cluster_pas_per_sample:
+    input:
+        parquet=rules.extract_polya_reads.output.parquet
+
+    output:
+        os.path.join(out_dir, "pas_clusters", "per_sample", config["pas_filter_method"], ".".join(["{sample}", config["pas_clusters_filename_prefix"], "bed"]))
+
+    params:
+        filter_method = config["pas_filter_method"],
+        cluster_window = config["pas_cluster_window"],
+        parquet_suffix = config["output_prefix"] + ".parquet", # not modifiable by scripts/extract_polya_reads.py
+        output_prefix = os.path.join(out_dir, "pas_clusters", "per_sample", config["pas_filter_method"], ".".join(["{sample}", config["pas_clusters_filename_prefix"]])),
+        long_overhang_min_length = config["long_overhang_min_length"],
+        long_overhang_fraction_a = config["long_overhang_fraction_a"],
+        short_overhang_length_range = config["short_overhang_length_range"],
+        short_overhang_fraction_a = config["short_overhang_fraction_a"],
+        entropy_cutoff = config["entropy_cutoff"]
+
+    conda:
+        "env_bulk_polya_reads.yaml"
+
+    log:
+        stdout = os.path.join(out_dir, "logs", "cluster_pas.per_sample." + "{sample}" + ".log.stdout.txt"),
+        stderr = os.path.join(out_dir, "logs", "cluster_pas.per_sample." + "{sample}" + ".log.stderr.txt")
+
+    benchmark:
+        os.path.join(out_dir, "benchmark", "cluster_pas.per_sample." + "{sample}" + ".benchmark.txt")
+
+    shell:
+        """
+        python scripts/cluster_pas.py \
+        -i {input.parquet} \
         -f {params.filter_method} \
         -w {params.cluster_window} \
         -s {params.parquet_suffix} \
