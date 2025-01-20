@@ -1,5 +1,6 @@
 import pandas as pd
 import os
+from typing import List
 
 sample_tbl = pd.read_csv(config["sample_table"])
 
@@ -61,13 +62,19 @@ wildcard_constraints:
     pool_id = "|".join(pool2sample.keys())
 
 #
+localrules: make_pas_stats_table
+
+def per_sample_targets(sample_names: List[str]) -> List[str]:
+    beds = expand(os.path.join(out_dir, "pas_clusters", "per_sample", config["pas_filter_method"], ".".join(["{sample}", config["pas_clusters_filename_prefix"], "bed"])), sample=SAMPLES)
+    # add stats file to targets and return
+    return beds + [os.path.join(out_dir, "pas_clusters", "per_sample", "all_samples.patrs.valid_stats.tsv")]
 
 rule all:
     input: 
         expand(os.path.join(out_dir, "{sample}" + output_prefix + ".global_softclip_tail_counts.tsv"), sample=SAMPLES),
         os.path.join(out_dir, "all_samples.pas.count_matrix.tsv"),
         expand(os.path.join(out_dir, "pas_clusters", "{pool_id}", config["pas_filter_method"], config["pas_clusters_filename_prefix"] + ".bed"), pool_id=pool2sample.keys()),
-        expand(os.path.join(out_dir, "pas_clusters", "per_sample", config["pas_filter_method"], ".".join(["{sample}", config["pas_clusters_filename_prefix"], "bed"])), sample=SAMPLES) if config["cluster_per_sample"] else []
+        per_sample_targets(SAMPLES) if config["cluster_per_sample"] else []
 
 
 rule extract_polya_reads:
@@ -76,6 +83,7 @@ rule extract_polya_reads:
 
     output: 
         parquet=directory(os.path.join(out_dir, "{sample}" + output_prefix + ".parquet")),
+        aln_stats=os.path.join(out_dir, "{sample}" + output_prefix + ".alignment_stats.tsv"),
         sclip_stats=os.path.join(out_dir, "{sample}" + output_prefix + ".global_softclip_tail_counts.tsv")
 
     params:
@@ -298,3 +306,54 @@ rule cluster_pas_per_sample:
         1> {log.stdout} \
         2> {log.stderr}
         """
+
+rule make_pas_stats_table:
+    '''Create TSV mapping samples to stats bed (total alignments) and clusters bed (valid PATRs)'''
+    input:
+        # Expand wildcards to get all sample files
+        stats=expand(os.path.join(out_dir, "{sample}" + output_prefix + ".alignment_stats.tsv"),
+                    sample=SAMPLES),
+        bed=expand(os.path.join(out_dir, "pas_clusters", "per_sample", config["pas_filter_method"],
+                               ".".join(["{sample}", config["pas_clusters_filename_prefix"], "bed"])),
+                  sample=SAMPLES)
+    output:
+        tsv=os.path.join(out_dir, "pas_clusters", "per_sample", "patr_bed2stats.tsv")
+    
+    run:
+        import csv
+        import os
+        with open(output.tsv, 'w') as f:
+            writer = csv.writer(f, delimiter='\t')
+            writer.writerow(['sample_name', 'stats_path', 'bed_path'])
+            
+            for sample, stats_path, bed_path in zip(SAMPLES, input.stats, input.bed):
+                writer.writerow([sample, stats_path, bed_path])
+
+            # Write a row for each sample
+            # for sample in SAMPLES:
+            #     stats_path = os.path.join(out_dir, f"{sample}{output_prefix}.global_softclip_tail_counts.tsv")
+            #     bed_path = os.path.join(out_dir, "pas_clusters", "per_sample", config["pas_filter_method"],
+            #                           f"{sample}.{config['pas_clusters_filename_prefix']}.bed")
+            #     writer.writerow([sample, stats_path, bed_path])
+
+
+rule per_sample_pas_stats:
+    input:
+        tsv=rules.make_pas_stats_table.output.tsv
+    output:
+        os.path.join(out_dir, "pas_clusters", "per_sample", "all_samples.patrs.valid_stats.tsv")
+    log:
+        stdout = os.path.join(out_dir, "logs", "per_sample_pas_stats.log.stdout.txt"),
+        stderr = os.path.join(out_dir, "logs", "per_sample_pas_stats.log.stderr.txt")
+    benchmark:
+        os.path.join(out_dir, "benchmark", "per_sample_pas_stats.benchmark.txt")
+    shell:
+        """
+        python scripts/per_sample_pas_stats.py \
+        {input.tsv} {output} \
+        1> {log.stdout} \
+        2> {log.stderr}
+        """
+
+
+
