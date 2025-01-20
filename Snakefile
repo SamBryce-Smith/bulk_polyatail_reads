@@ -329,13 +329,6 @@ rule make_pas_stats_table:
             for sample, stats_path, bed_path in zip(SAMPLES, input.stats, input.bed):
                 writer.writerow([sample, stats_path, bed_path])
 
-            # Write a row for each sample
-            # for sample in SAMPLES:
-            #     stats_path = os.path.join(out_dir, f"{sample}{output_prefix}.global_softclip_tail_counts.tsv")
-            #     bed_path = os.path.join(out_dir, "pas_clusters", "per_sample", config["pas_filter_method"],
-            #                           f"{sample}.{config['pas_clusters_filename_prefix']}.bed")
-            #     writer.writerow([sample, stats_path, bed_path])
-
 
 rule per_sample_pas_stats:
     input:
