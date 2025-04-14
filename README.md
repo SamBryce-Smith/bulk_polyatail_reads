@@ -1,5 +1,7 @@
 # Extract reads with soft-clipped polyA tails from bulk RNA-seq
 
+[![DOI](https://zenodo.org/badge/837292050.svg)](https://doi.org/10.5281/zenodo.15210305)
+
 Snakemake pipeline to extract polyA-tail containiing reads (PATRs) from aligned bulk RNA-seq datasets and identify poly(A) site clusters. Broadly mimics workflow reported by [Vlasenok et al. 2023](https://doi.org/10.1093/nargab/lqad051) with more customisation options (e.g. rescuing/using shorter overhang lengths)
 
 ## Prerequesites
