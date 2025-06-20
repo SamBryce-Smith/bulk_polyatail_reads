@@ -7,28 +7,33 @@ Snakemake pipeline to extract polyA-tail containiing reads (PATRs) from aligned 
 Input files:
 
 - RNA-seq BAM files aligned with soft-clipping enabled. Indexes must be present in the same location (suffixed with .bai)
-- BED file containing PAS to count (required for plumbing purposes, can use provided file if not interested in specific set of PAS)
+- BED file containing PAS to count (required for plumbing purposes, can use provided file `data/query_pas.bed` if not interested in specific set of PAS)
 
 Software:
 
-- Snakemake
+- Snakemake (tested with 7.32.4)
 - Conda/mamba
 
-Currently, you will need to manage initial dependencies yourself (this may change in the future). Pipeline dependencies are managed using a conda environment.
+Currently, you will need to manage initial dependencies yourself (this may change in the future). Alternatively, you can use the development environment `env_dev_bulk_polya_reads.yaml`:
+
+```bash
+# conda / mamba depending on preference
+conda env create -f env_dev_bulk_polya_reads.yaml
+```
+
+Pipeline dependencies are managed using a conda environment.
 
 ## Configuration
 
-- Generate a config YAML file using `config.yaml` as a template. All parameters are described using comments in the config file
-- Generate a CSV sample table to map BAM files to sample names and groups. A complete example can be found at [example_sample_table.csv](example_sample_table.csv). The minimal columns are `sample_name` (unique identifier for sample) and `bam` (path to BAM file)
+- Generate a config YAML file using `config.minimal.yaml` or `config.full.yaml` as a template. All parameters are described using comments in the config file
+- Generate a CSV sample table to map BAM files to sample names and groups. The minimal columns are `sample_name` (unique identifier for sample) and `bam` (path to BAM file). A complete example can be found at [example_sample_table.csv](example_sample_table.csv).
 
 ## Usage
 
-### TODO: provide example data for testing/initial run
-
-Dry run:
+Dry run using example data:
 
 ```bash
-snakemake -n -p --configfile <config_file.yaml> 
+snakemake -n -p --configfile <config_file.yaml>
 ```
 
 Local run:
@@ -37,47 +42,83 @@ Local run:
 snakemake -n -p --configfile <config_file.yaml> --use-conda --cores <n>
 ```
 
-replacing `<config_file.yaml>` with the path to the config file and `<n>` with the number of cores for parallel processing of samples.
+replacing `<config_file.yaml>` with the path to the config file (`config.minimal.yaml` or `config.full.yaml` for complete functionality) and `<n>` with the number of cores for parallel processing of samples.
 
 UCL CS cluster users can use the `submit.sh` bash script to submit the pipeline to for remote processing on the cluster. See `bash submit.sh -h` for details on how to use.
 
 ## Output
 
 ```bash
-bulk_polya_reads
+# output of config.full.yaml (manually cleaned up .parquet, benchmark and log directories)
+$ tree -L 4 example_output_full/
+example_output_full/
 ├── NT_19074709_S20.polya_tail_reads.alignment_stats.tsv
 ├── NT_19074709_S20.polya_tail_reads.global_softclip_tail_counts.tsv
 ├── NT_19074709_S20.polya_tail_reads.parquet
+├── NT_19074717_S21.polya_tail_reads.alignment_stats.tsv
+├── NT_19074717_S21.polya_tail_reads.global_softclip_tail_counts.tsv
+├── NT_19074717_S21.polya_tail_reads.parquet
+├── TDP43_19065403_S23.polya_tail_reads.alignment_stats.tsv
+├── TDP43_19065403_S23.polya_tail_reads.global_softclip_tail_counts.tsv
+├── TDP43_19065403_S23.polya_tail_reads.parquet
 ├── TDP43_19065407_S25.polya_tail_reads.alignment_stats.tsv
 ├── TDP43_19065407_S25.polya_tail_reads.global_softclip_tail_counts.tsv
 ├── TDP43_19065407_S25.polya_tail_reads.parquet
 ├── all_samples.pas.count_matrix.tsv
 ├── benchmark
+├── duplicate_TDP43_19065407_S25.polya_tail_reads.alignment_stats.tsv
+├── duplicate_TDP43_19065407_S25.polya_tail_reads.global_softclip_tail_counts.tsv
+├── duplicate_TDP43_19065407_S25.polya_tail_reads.parquet
 ├── logs
-├── pas_clusters
-│   ├── all
-│   │   └── two_class_simple
-│   │       └── all_samples.polya_clusters.bed
-│   ├── batch__seddighi_i3_cortical_batch1___condition__NT
-│   │   └── two_class_simple
-│   │       └── all_samples.polya_clusters.bed
-│   ├── batch__seddighi_i3_cortical_batch1___condition__TDP43KD
-│   │   └── two_class_simple
-│   │       └── all_samples.polya_clusters.bed
-│   ├── batch__seddighi_i3_cortical_batch2___condition__NT
-│   │   └── two_class_simple
-│   │       └── all_samples.polya_clusters.bed
-│   ├── batch__seddighi_i3_cortical_batch2___condition__TDP43KD
-│   │   └── two_class_simple
-│   │       └── all_samples.polya_clusters.bed
-│   ├── condition__NT
-│   │   └── two_class_simple
-│   │       └── all_samples.polya_clusters.bed
-│   ├── condition__TDP43KD
-│   │   └── two_class_simple
-│   │       └── all_samples.polya_clusters.bed
+└── pas_clusters
+    ├── all
+    │   └── two_class_simple
+    │       └── all_samples.polya_clusters.bed
+    ├── batch__batch1
+    │   └── two_class_simple
+    │       └── all_samples.polya_clusters.bed
+    ├── batch__batch1___condition__NT
+    │   └── two_class_simple
+    │       └── all_samples.polya_clusters.bed
+    ├── batch__batch1___condition__TDP43KD
+    │   └── two_class_simple
+    │       └── all_samples.polya_clusters.bed
+    ├── batch__batch2
+    │   └── two_class_simple
+    │       └── all_samples.polya_clusters.bed
+    ├── batch__batch2___condition__NT
+    │   └── two_class_simple
+    │       └── all_samples.polya_clusters.bed
+    ├── batch__batch2___condition__TDP43KD
+    │   └── two_class_simple
+    │       └── all_samples.polya_clusters.bed
+    ├── condition__NT
+    │   └── two_class_simple
+    │       └── all_samples.polya_clusters.bed
+    ├── condition__TDP43KD
+    │   └── two_class_simple
+    │       └── all_samples.polya_clusters.bed
+    └── per_sample
+        ├── all_samples.patrs.valid_stats.tsv
+        ├── patr_bed2stats.tsv
+        └── two_class_simple
+            ├── NT_19074709_S20.all_samples.polya_clusters.bed
+            ├── NT_19074717_S21.all_samples.polya_clusters.bed
+            ├── TDP43_19065403_S23.all_samples.polya_clusters.bed
+            ├── TDP43_19065407_S25.all_samples.polya_clusters.bed
+            └── duplicate_TDP43_19065407_S25.all_samples.polya_clusters.bed
+
+36 directories, 108 files
 ```
 
+- `<sample_name>.polya_tail_reads.parquet` - per-sample parquet files containing extracted soft-clipped read statistics (length, sequence, A content, genomic coordinates etc.)
+- `all_samples.pas.count_matrix.tsv` - PAS x sample count matrix for input BED file of target PAS (e.g. `data/query_pas.bed`)
+- `benchmarks`, `logs` - directories storing per-rule, per invocation runtime statistics (benchmark) and STDOUT/STDERR logs (logs) from Snakemake's benchmark and log directives
+- `pas_clusters` - BED6 files of inferred PAS clusters after filtering for valid poly(A)-tail containing reads. Score field contains raw counts
+  - Subdirectories are for different pooling methods specified in config file, named as `key__value` and separated by `___` for multiple groupings
+  - `per_sample` contains per-sample PAS clusters (if `cluster_per_sample: True`)
+    - `all_samples.patrs.valid_stats.tsv` - summary statistics per-sample valid poly(A)-tail containing reads after filtering criteria
+    - `patr_bed2stats.tsv` - intermediate table containing paths to alignment statistics and PATR cluster BEDs per-sample
 
 ## Assorted Notes
 
