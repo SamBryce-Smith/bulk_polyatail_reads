@@ -2,16 +2,16 @@
 # sample_name - unique ID for sample
 # bam - path to BAM file (assumes presence of index file suffixed with .bai in same location)
 # Plus any additional optional categorical columns to define more precise pooling options &/ strandedness
-sample_table: "example_sample_table.csv"
+sample_table: "minimal_sample_table.csv"
 
 # list defining sample table column(s) to specify pooling prior to defining PAS clusters
 # Must be a list, each element is considered a unique 'pooling method' (i.e. can define multiple distinct approaches for pooling) 
 # Each element can be a string (for single column) or a list of strings (for grouping by multiple columns)
 # All defined column names must be present in the sample table
 # 'all' - reserved string to pool all provided samples together
-pooling_methods: ["all", "condition", ["batch", "condition"]]
+pooling_methods: ["all"]
 
-output_dir: "bulk_polya_reads"
+output_dir: "example_output_minimal"
 
 # appended to sample name (but preceding output file suffixes)
 output_prefix: ".polya_tail_reads"
@@ -43,10 +43,10 @@ min_fracA: 0
 
 
 # path to BED file containing single-nucleotide length polyA site coordinates wish to quantify
-pas_bed: data/papa_combined_cryptic_pas.bed
+pas_bed: data/query_pas.bed
 
 # distance to extend either side of polyA sites from pas_bed (note that total length of searched interval would be 2*pas_window_size + 1)
-pas_window_size: 50
+pas_window_size: 25
 
 # Whether to count pas per sample and merge individual results into final table (True), or run script once using all samples
 # If have hundreds/thousands of samples, may be preferable for memory requirements to run per sample
